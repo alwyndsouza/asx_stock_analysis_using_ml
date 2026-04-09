@@ -197,17 +197,23 @@ jobs:
             # Upload new assets
             gh release upload ${{ env.RELEASE_TAG }} \
               "${{ env.DUCKDB_FILE }}" \
-              dlt-state.tar.gz \
               --clobber
+            
+            # Upload dlt state if it exists
+            if [ -f "dlt-state.tar.gz" ]; then
+              gh release upload ${{ env.RELEASE_TAG }} \
+                dlt-state.tar.gz \
+                --clobber
+              echo "Uploaded dlt state"
+            fi
             
             echo "Updated release with new data"
           else
             echo "Creating new release..."
             
-            # Create new release
+            # Create new release with DuckDB file
             gh release create ${{ env.RELEASE_TAG }} \
               "${{ env.DUCKDB_FILE }}" \
-              dlt-state.tar.gz \
               --title "Latest ASX Stock Data" \
               --notes "**Automated data update**
           
@@ -220,6 +226,13 @@ jobs:
           🔄 **Pipeline Run:** ${{ github.run_number }}
           📝 **Commit:** ${{ github.sha }}
           "
+            
+            # Upload dlt state if it exists
+            if [ -f "dlt-state.tar.gz" ]; then
+              gh release upload ${{ env.RELEASE_TAG }} \
+                dlt-state.tar.gz
+              echo "Uploaded dlt state"
+            fi
             
             echo "Created new release with data"
           fi
