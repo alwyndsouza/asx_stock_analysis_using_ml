@@ -22,7 +22,7 @@ WITH features AS (
     {% if is_incremental() %}
     -- Need 21 days lookback for next_month_return calculation
     WHERE price_date >= (
-        SELECT DATE_SUB((SELECT MAX(price_date) FROM {{ this }}), INTERVAL 21 DAY)
+        SELECT MAX(price_date) - INTERVAL 21 DAY FROM {{ this }}
     )
     {% endif %}
 ),

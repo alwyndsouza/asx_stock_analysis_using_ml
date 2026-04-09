@@ -23,7 +23,7 @@ WITH base_indicators AS (
     {% if is_incremental() %}
     -- Need 7 days lookback for lag_7_day_return
     WHERE price_date >= (
-        SELECT DATE_SUB((SELECT MAX(price_date) FROM {{ this }}), INTERVAL 7 DAY)
+        SELECT MAX(price_date) - INTERVAL 7 DAY FROM {{ this }}
     )
     {% endif %}
 ),

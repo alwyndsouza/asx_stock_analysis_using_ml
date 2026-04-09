@@ -41,7 +41,7 @@ WITH price_data AS (
     -- For incremental, we need lookback data for window functions
     -- Fetch records from 200 days before the new data (for SMA_200)
     WHERE price_date >= (
-        SELECT DATE_SUB((SELECT MAX(price_date) FROM {{ this }}), INTERVAL 200 DAY)
+        SELECT MAX(price_date) - INTERVAL 200 DAY FROM {{ this }}
     )
     {% endif %}
 ),
