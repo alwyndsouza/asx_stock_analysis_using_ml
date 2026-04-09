@@ -195,6 +195,8 @@ def download_latest_database(force: bool = False):
 
 def main():
     """Main entry point."""
+    global GITHUB_REPO
+    
     parser = argparse.ArgumentParser(
         description="Download the latest ASX stock database from GitHub Releases"
     )
@@ -212,7 +214,6 @@ def main():
     args = parser.parse_args()
     
     # Override repo if specified
-    global GITHUB_REPO
     GITHUB_REPO = args.repo
     
     logger.info("🚀 Starting database download...")
