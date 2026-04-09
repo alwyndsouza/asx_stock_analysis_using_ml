@@ -1,0 +1,62 @@
+version: 2
+
+models:
+  - name: stg_asx_stock_prices
+    description: Cleaned and standardized ASX stock price data
+    config:
+      alias: stg_asx_stock_prices
+    columns:
+      - name: price_date
+        description: Trading date (date only, timezone removed)
+        tests:
+          - not_null
+          - unique:
+              config:
+                where: "symbol = 'EVN.AX'"
+      - name: symbol
+        description: ASX stock ticker symbol (uppercase)
+        tests:
+          - not_null
+      - name: sector
+        description: Sector classification (gold, oil, silver)
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['gold', 'oil', 'silver']
+      - name: open_price
+        description: Opening price in AUD
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: high_price
+        description: Highest price during trading day in AUD
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: low_price
+        description: Lowest price during trading day in AUD
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: close_price
+        description: Closing price in AUD
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: volume
+        description: Trading volume (number of shares)
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: daily_range
+        description: High - Low price for the day
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: extraction_timestamp
+        description: Timestamp when data was extracted from source

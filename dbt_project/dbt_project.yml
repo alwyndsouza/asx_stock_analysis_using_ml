@@ -1,0 +1,21 @@
+name: 'asx_stock_analysis'
+version: '1.0.0'
+config-version: 2
+
+profile: 'asx_stock_analysis'
+
+models:
+  asx_stock_analysis:
+    +materialized: table
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
+
+vars:
+  asx_stocks:
+    gold: ['NCM.AX', 'EVN.AX', 'NST.AX', 'RRL.AX', 'SBM.AX']
+    oil: ['WDS.AX', 'STO.AX', 'BPT.AX', 'KAR.AX']
+    silver: ['SVL.AX', 'S32.AX']

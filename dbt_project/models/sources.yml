@@ -1,0 +1,48 @@
+version: 2
+
+sources:
+  - name: raw_asx_data
+    description: Raw ASX stock price data from Yahoo Finance
+    database: asx_stocks
+    schema: raw_asx_data
+    tables:
+      - name: asx_stock_prices
+        description: Historical OHLCV data for ASX gold, oil, and silver mining stocks
+        identifier: asx_stock_prices
+        columns:
+          - name: date
+            description: Trading date with timezone
+            tests:
+              - not_null
+          - name: symbol
+            description: ASX stock ticker (e.g., NCM.AX, EVN.AX, WDS.AX)
+            tests:
+              - not_null
+          - name: sector
+            description: Sector classification (gold, oil, silver)
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['gold', 'oil', 'silver']
+          - name: open_price
+            description: Opening price in AUD
+            tests:
+              - not_null
+          - name: high_price
+            description: Highest price during trading day in AUD
+            tests:
+              - not_null
+          - name: low_price
+            description: Lowest price during trading day in AUD
+            tests:
+              - not_null
+          - name: close_price
+            description: Closing price in AUD
+            tests:
+              - not_null
+          - name: volume
+            description: Trading volume (number of shares)
+            tests:
+              - not_null
+          - name: extraction_timestamp
+            description: Timestamp when data was extracted from Yahoo Finance

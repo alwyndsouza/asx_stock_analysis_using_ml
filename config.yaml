@@ -1,0 +1,83 @@
+# ASX Stock Analysis Configuration
+# Production configuration file
+
+app:
+  name: "ASX Stock Analysis"
+  version: "1.0.0"
+  debug: false
+
+database:
+  # DuckDB configuration
+  path: "asx_stocks.duckdb"
+  schema: "raw_asx_data"
+  analytics_schema: "analytics"
+
+# Data extraction settings
+extraction:
+  # Stocks to track
+  stocks:
+    gold: ["EVN.AX", "NST.AX", "RRL.AX", "SBM.AX"]  # Note: NCM not in original list, using gold miners
+    oil: ["WDS.AX", "STO.AX", "BPT.AX", "KAR.AX"]
+    silver: ["SVL.AX", "S32.AX"]
+  
+  # Full refresh every 5 years
+  full_refresh_days: 1825
+  
+  # Incremental days
+  incremental_days: 30
+  
+  # Rate limiting
+  requests_per_second: 2
+  retry_attempts: 3
+  retry_delay_seconds: 5
+
+# dbt settings
+dbt:
+  project_dir: "dbt_project"
+  profiles_dir: "dbt_project"
+  
+# ML settings
+ml:
+  models_dir: "ml_models"
+  
+  # Training defaults
+  default_threshold: 1.0  # % return to consider as BUY signal
+  test_size: 0.2
+  
+  # Random Forest defaults
+  rf_n_estimators: 100
+  rf_max_depth: 10
+  
+  # XGBoost defaults
+  xgb_n_estimators: 100
+  xgb_max_depth: 6
+  xgb_learning_rate: 0.1
+
+# Streamlit settings
+streamlit:
+  page_title: "ASX Stock Analysis"
+  page_icon: "📈"
+  
+  # Cache settings
+  cache_ttl_seconds: 3600
+  
+  # Theme
+  primary_color: "#00FFFF"
+  background_color: "#0E1117"
+
+# GitHub Actions settings
+github_actions:
+  # 7pm AEST = 9am UTC
+  cron_schedule: "0 9 * * *"
+  retention_days: 7
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+# Alerts (for future enhancement)
+alerts:
+  enabled: false
+  email: ""
+  slack_webhook: ""

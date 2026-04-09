@@ -1,0 +1,61 @@
+name: Daily ASX Stock Pipeline
+
+on:
+  schedule:
+    # Run every day at 7:00 PM AEST (Australian Eastern Standard Time)
+    # AEST is UTC+10, so 7 PM AEST = 9:00 UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+
+jobs:
+  extract-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+      
+      - name: Install dependencies
+        run: uv sync
+      
+      - name: Extract ASX stock data
+        run: python -m ingestion.asx_extraction.extract run-incremental
+        env:
+          DUCKDB_PATH: asx_stocks.duckdb
+      
+      - name: Run dbt build
+        run: |
+          cd dbt_project
+          DUCKDB_PATH=../asx_stocks.duckdb dbt deps
+          DUCKDB_PATH=../asx_stocks.duckdb dbt run
+      
+      - name: Run dbt tests
+        run: |
+          cd dbt_project
+          DUCKDB_PATH=../asx_stocks.duckdb dbt test
+      
+      - name: Upload DuckDB database
+        uses: actions/upload-artifact@v4
+        with:
+          name: asx-stocks-db
+          path: asx_stocks.duckdb
+          retention-days: 7
+      
+      - name: Commit updated data (optional)
+        if: github.event_name == 'schedule'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add asx_stocks.duckdb
+          git diff --staged --quiet || git commit -m "Update ASX stock data - $(date +%Y-%m-%d)"
+          git push
+        continue-on-error: true

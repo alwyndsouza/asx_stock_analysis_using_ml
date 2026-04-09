@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: int_technical_indicators
+    description: Technical indicators calculated from ASX stock prices for ML feature engineering
+    columns:
+      - name: symbol
+        description: ASX stock ticker symbol
+        tests:
+          - not_null
+      - name: price_date
+        description: Trading date
+        tests:
+          - not_null
+      - name: open_price
+        description: Opening price in AUD
+      - name: high_price
+        description: Highest price during trading day in AUD
+      - name: low_price
+        description: Lowest price during trading day in AUD
+      - name: close_price
+        description: Closing price in AUD
+        tests:
+          - not_null
+      - name: volume
+        description: Trading volume
+      - name: daily_range
+        description: High - Low price for the day
+      - name: sma_7
+        description: 7-day Simple Moving Average
+      - name: sma_14
+        description: 14-day Simple Moving Average
+      - name: sma_30
+        description: 30-day Simple Moving Average
+      - name: sma_50
+        description: 50-day Simple Moving Average
+      - name: sma_200
+        description: 200-day Simple Moving Average
+      - name: rsi_14
+        description: 14-day Relative Strength Index (0-100)
+      - name: macd_line
+        description: MACD Line (12-day EMA - 26-day EMA)
+      - name: macd_signal
+        description: MACD Signal Line (9-day EMA of MACD)
+      - name: macd_histogram
+        description: MACD Histogram (MACD Line - Signal Line)
+      - name: bb_middle
+        description: Bollinger Band Middle (20-day SMA)
+      - name: bb_upper
+        description: Bollinger Band Upper (SMA + 2×STD)
+      - name: bb_lower
+        description: Bollinger Band Lower (SMA - 2×STD)
+      - name: bb_position
+        description: Bollinger Band Position (0-1 scale, position within bands)
+      - name: atr_14
+        description: 14-day Average True Range
+      - name: volume_sma_20
+        description: 20-day Volume Simple Moving Average
+      - name: obv
+        description: On-Balance Volume (cumulative)
+      - name: volume_ratio
+        description: Current volume / 20-day volume average
+      - name: volatility_20
+        description: 20-day rolling standard deviation of daily returns
+
+  - name: int_ml_features
+    description: Advanced ML features including lag features, momentum, cross signals, and support/resistance levels
+    columns:
+      - name: symbol
+        description: ASX stock ticker symbol
+        tests:
+          - not_null
+      - name: price_date
+        description: Trading date
+        tests:
+          - not_null
+      - name: sector
+        description: Sector classification (gold, oil, silver)
+      - name: lag_1_day_return
+        description: 1-day price return percentage (lag feature)
+      - name: lag_3_day_return
+        description: 3-day price return percentage (lag feature)
+      - name: lag_5_day_return
+        description: 5-day price return percentage (lag feature)
+      - name: lag_7_day_return
+        description: 7-day price return percentage (lag feature)
+      - name: momentum_7
+        description: 7-day momentum (rate of change)
+      - name: momentum_14
+        description: 14-day momentum
+      - name: momentum_30
+        description: 30-day momentum
+      - name: momentum_1
+        description: 1-day momentum
+      - name: golden_cross_signal
+        description: Binary signal when 50-day SMA crosses above 200-day SMA (1=yes, 0=no)
+      - name: death_cross_signal
+        description: Binary signal when 50-day SMA crosses below 200-day SMA (1=yes, 0=no)
+      - name: ma_crossover_distance
+        description: Distance between 50-day and 200-day SMAs
+      - name: short_term_trend
+        description: Difference between 7-day and 14-day SMAs
+      - name: support_20
+        description: 20-day rolling low (support level)
+      - name: resistance_20
+        description: 20-day rolling high (resistance level)
+      - name: support_50
+        description: 50-day rolling low
+      - name: resistance_50
+        description: 50-day rolling high
+      - name: price_position_20
+        description: Current price position within 20-day range (0-1 scale)
+      - name: price_position_50
+        description: Current price position within 50-day range (0-1 scale)

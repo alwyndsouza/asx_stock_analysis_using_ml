@@ -1,0 +1,10 @@
+asx_stock_analysis:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', 'asx_stocks.duckdb') }}"
+      schema: analytics
+      threads: 4
+      extensions:
+        - parquet
