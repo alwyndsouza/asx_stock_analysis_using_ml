@@ -16,6 +16,6 @@ models:
 
 vars:
   asx_stocks:
-    gold: ['NCM.AX', 'EVN.AX', 'NST.AX', 'RRL.AX', 'SBM.AX']
+    gold: ['EVN.AX', 'NST.AX', 'RRL.AX', 'SBM.AX']
     oil: ['WDS.AX', 'STO.AX', 'BPT.AX', 'KAR.AX']
     silver: ['SVL.AX', 'S32.AX']
