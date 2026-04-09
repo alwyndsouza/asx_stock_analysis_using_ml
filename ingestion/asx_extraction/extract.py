@@ -170,11 +170,12 @@ def run_full() -> None:
     start_date = (datetime.now() - timedelta(days=365 * FULL_LOAD_YEARS)).strftime("%Y-%m-%d")
     logger.info(f"Full load from {start_date} to today")
     
-    # Create dlt pipeline
+    # Create dlt pipeline with explicit destination
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,
-        destination="duckdb",
+        destination=dlt.destinations.duckdb(DUCKDB_PATH),
         dataset_name=DATASET_NAME,
+        full_refresh=True,  # Drop and recreate schema
     )
     
     # Load data
@@ -193,8 +194,9 @@ def run_incremental() -> None:
     # Create dlt pipeline (reuses existing state)
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,
-        destination="duckdb",
+        destination=dlt.destinations.duckdb(DUCKDB_PATH),
         dataset_name=DATASET_NAME,
+        full_refresh=False,  # Preserve state for incremental
     )
     
     # Check if this is the first run
@@ -234,7 +236,7 @@ def view_pipeline_info() -> None:
     
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,
-        destination="duckdb",
+        destination=dlt.destinations.duckdb(DUCKDB_PATH),
         dataset_name=DATASET_NAME,
     )
     
