@@ -185,7 +185,6 @@ def run_full() -> None:
     )
     
     logger.info(f"Full refresh completed: {load_info}")
-    logger.info(f"Loaded {load_info.load_packages[0].state.get('row_counts', {})} rows")
 
 
 def run_incremental() -> None:
@@ -224,10 +223,6 @@ def run_incremental() -> None:
         )
     
     logger.info(f"Incremental load completed: {load_info}")
-    
-    # Show pipeline state
-    if load_info.load_packages:
-        logger.info(f"Loaded rows: {load_info.load_packages[0].state.get('row_counts', {})}")
 
 
 def run_pipeline() -> None:
