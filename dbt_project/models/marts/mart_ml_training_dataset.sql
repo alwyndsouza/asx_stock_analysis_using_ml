@@ -5,15 +5,26 @@
  - Target variables: next_day_return, next_week_return
  - Train/test split marker
  - No nulls in key features
+ 
+ Incremental mode: processes only new records with lookback for LEAD functions
 */
 
 {{ config(
-    materialized='table',
-    alias='mart_ml_training_dataset'
+    materialized='incremental',
+    alias='mart_ml_training_dataset',
+    unique_key=['symbol', 'price_date'],
+    on_schema_change='fail'
 ) }}
 
 WITH features AS (
     SELECT * FROM {{ ref('int_ml_features') }}
+    
+    {% if is_incremental() %}
+    -- Need 21 days lookback for next_month_return calculation
+    WHERE price_date >= (
+        SELECT DATE_SUB((SELECT MAX(price_date) FROM {{ this }}), INTERVAL 21 DAY)
+    )
+    {% endif %}
 ),
 
 target_calc AS (
@@ -254,6 +265,11 @@ WHERE
     AND bb_position IS NOT NULL
     AND atr_14 IS NOT NULL
     AND volatility_20 IS NOT NULL
+    
+    {% if is_incremental() %}
+    -- Incremental: only return new rows
+    AND f.price_date > (SELECT MAX(price_date) FROM {{ this }})
+    {% endif %}
     
 ORDER BY 
     symbol,

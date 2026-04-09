@@ -7,11 +7,15 @@
  - Bollinger Bands: SMA ± 2×standard deviation
  - ATR (Average True Range): 14 period
  - Volume indicators: OBV, volume SMA
+ 
+ Incremental mode: updates only new records based on price_date
 */
 
 {{ config(
-    materialized='view',
-    alias='int_technical_indicators'
+    materialized='incremental',
+    alias='int_technical_indicators',
+    unique_key=['symbol', 'price_date'],
+    on_schema_change='fail'
 ) }}
 
 WITH price_data AS (
@@ -32,6 +36,14 @@ WITH price_data AS (
         close_price - open_price AS intraday_return
         
     FROM {{ ref('stg_asx_stock_prices') }}
+    
+    {% if is_incremental() %}
+    -- For incremental, we need lookback data for window functions
+    -- Fetch records from 200 days before the new data (for SMA_200)
+    WHERE price_date >= (
+        SELECT DATE_SUB((SELECT MAX(price_date) FROM {{ this }}), INTERVAL 200 DAY)
+    )
+    {% endif %}
 ),
 
 sma_calc AS (

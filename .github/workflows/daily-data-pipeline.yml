@@ -1,0 +1,225 @@
+name: Daily ASX Data Pipeline
+
+on:
+  # Run daily at 7PM AEST (9AM UTC in Standard Time, 8AM UTC in Daylight Time)
+  # Using 9AM UTC as approximate - adjust based on DST
+  schedule:
+    - cron: '0 9 * * *'  # 9:00 AM UTC = 7:00 PM AEST (approx)
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      full_refresh:
+        description: 'Force full refresh instead of incremental'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DUCKDB_FILE: asx_stocks.duckdb
+  RELEASE_TAG: data-latest
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  data-pipeline:
+    name: Extract and Transform Data
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write  # Required for creating/updating releases
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          version: "latest"
+      
+      - name: Set up Python with uv
+        run: uv python install ${{ env.PYTHON_VERSION }}
+      
+      - name: Check if this is first run
+        id: check-first-run
+        run: |
+          # Check if release with DuckDB exists
+          if gh release view ${{ env.RELEASE_TAG }} &> /dev/null; then
+            echo "first_run=false" >> $GITHUB_OUTPUT
+            echo "Release exists - will run incremental"
+          else
+            echo "first_run=true" >> $GITHUB_OUTPUT
+            echo "No release found - will run full load"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+      
+      - name: Download existing DuckDB and dlt state
+        if: steps.check-first-run.outputs.first_run == 'false'
+        run: |
+          echo "Downloading existing DuckDB and state..."
+          
+          # Download DuckDB file
+          gh release download ${{ env.RELEASE_TAG }} \
+            -p "${{ env.DUCKDB_FILE }}" \
+            -D . \
+            || echo "DuckDB file not found in release"
+          
+          # Download dlt state (if exists)
+          gh release download ${{ env.RELEASE_TAG }} \
+            -p "dlt-state.tar.gz" \
+            -D . \
+            || echo "dlt state not found in release"
+          
+          # Extract dlt state
+          if [ -f "dlt-state.tar.gz" ]; then
+            tar -xzf dlt-state.tar.gz
+            echo "Restored dlt state"
+          fi
+          
+          # Verify files
+          ls -lh ${{ env.DUCKDB_FILE }} 2>/dev/null || echo "No existing DuckDB"
+          ls -lh .dlt/ 2>/dev/null || echo "No existing dlt state"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      
+      - name: Install project dependencies with uv
+        run: |
+          uv sync --frozen
+      
+      - name: Run data extraction
+        run: |
+          # Determine if full or incremental
+          if [[ "${{ steps.check-first-run.outputs.first_run }}" == "true" ]] || \
+             [[ "${{ github.event.inputs.full_refresh }}" == "true" ]]; then
+            echo "Running FULL extraction..."
+            uv run python -m ingestion.asx_extraction.extract run-full
+          else
+            echo "Running INCREMENTAL extraction..."
+            uv run python -m ingestion.asx_extraction.extract run-incremental
+          fi
+      
+      - name: View extraction info
+        run: |
+          uv run python -m ingestion.asx_extraction.extract info
+      
+      - name: Run dbt models
+        working-directory: dbt_project
+        run: |
+          # Install dbt dependencies
+          uv run dbt deps
+          
+          # Run dbt with appropriate mode
+          if [[ "${{ steps.check-first-run.outputs.first_run }}" == "true" ]] || \
+             [[ "${{ github.event.inputs.full_refresh }}" == "true" ]]; then
+            echo "Running dbt FULL REFRESH..."
+            uv run dbt build --full-refresh
+          else
+            echo "Running dbt INCREMENTAL..."
+            uv run dbt build
+          fi
+      
+      - name: Run dbt tests
+        working-directory: dbt_project
+        run: |
+          uv run dbt test
+      
+      - name: Package dlt state
+        run: |
+          if [ -d ".dlt" ]; then
+            tar -czf dlt-state.tar.gz .dlt/
+            echo "Packaged dlt state"
+          fi
+      
+      - name: Get database stats
+        id: db-stats
+        run: |
+          # Get stats from DuckDB
+          STATS=$(uv run python -c "
+          import duckdb
+          con = duckdb.connect('${{ env.DUCKDB_FILE }}')
+          
+          # Get record counts
+          raw_count = con.execute('SELECT COUNT(*) FROM raw_asx_data.asx_stock_prices').fetchone()[0]
+          mart_count = con.execute('SELECT COUNT(*) FROM analytics.mart_ml_training_dataset').fetchone()[0]
+          
+          # Get date range
+          date_range = con.execute('SELECT MIN(date), MAX(date) FROM raw_asx_data.asx_stock_prices').fetchone()
+          
+          print(f'raw_records={raw_count}')
+          print(f'mart_records={mart_count}')
+          print(f'min_date={date_range[0]}')
+          print(f'max_date={date_range[1]}')
+          
+          con.close()
+          ")
+          
+          echo "$STATS" >> $GITHUB_OUTPUT
+      
+      - name: Create/Update Release with DuckDB
+        run: |
+          # Check if release exists
+          if gh release view ${{ env.RELEASE_TAG }} &> /dev/null; then
+            echo "Updating existing release..."
+            
+            # Delete old assets
+            gh release delete-asset ${{ env.RELEASE_TAG }} \
+              "${{ env.DUCKDB_FILE }}" \
+              --yes || true
+            
+            gh release delete-asset ${{ env.RELEASE_TAG }} \
+              "dlt-state.tar.gz" \
+              --yes || true
+            
+            # Upload new assets
+            gh release upload ${{ env.RELEASE_TAG }} \
+              "${{ env.DUCKDB_FILE }}" \
+              dlt-state.tar.gz \
+              --clobber
+            
+            echo "Updated release with new data"
+          else
+            echo "Creating new release..."
+            
+            # Create new release
+            gh release create ${{ env.RELEASE_TAG }} \
+              "${{ env.DUCKDB_FILE }}" \
+              dlt-state.tar.gz \
+              --title "Latest ASX Stock Data" \
+              --notes "**Automated data update**
+          
+          📊 **Database Statistics:**
+          - Raw records: ${{ steps.db-stats.outputs.raw_records }}
+          - ML dataset records: ${{ steps.db-stats.outputs.mart_records }}
+          - Date range: ${{ steps.db-stats.outputs.min_date }} to ${{ steps.db-stats.outputs.max_date }}
+          - Last updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          
+          🔄 **Pipeline Run:** ${{ github.run_number }}
+          📝 **Commit:** ${{ github.sha }}
+          "
+            
+            echo "Created new release with data"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+      
+      - name: Upload DuckDB as artifact (backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: asx-stocks-db-${{ github.run_number }}
+          path: |
+            ${{ env.DUCKDB_FILE }}
+            dlt-state.tar.gz
+          retention-days: 30
+      
+      - name: Summary
+        run: |
+          echo "## Pipeline Execution Summary 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Type:** ${{ steps.check-first-run.outputs.first_run == 'true' && 'Full Load' || 'Incremental' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Raw Records:** ${{ steps.db-stats.outputs.raw_records }}" >> $GITHUB_STEP_SUMMARY
+          echo "**ML Dataset Records:** ${{ steps.db-stats.outputs.mart_records }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Date Range:** ${{ steps.db-stats.outputs.min_date }} to ${{ steps.db-stats.outputs.max_date }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Data available at: [Latest Release](https://github.com/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }})" >> $GITHUB_STEP_SUMMARY

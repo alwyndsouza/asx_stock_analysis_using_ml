@@ -44,15 +44,15 @@ def run_streamlit(app: str, port: int = 8501):
 
 
 def run_extraction(incremental: bool = False):
-    """Run data extraction."""
+    """Run data extraction using dlthub."""
     cmd = ["uv", "run", "python", "-m", "ingestion.asx_extraction.extract"]
 
     if incremental:
         cmd.append("run-incremental")
     else:
-        cmd.append("run")
+        cmd.append("run-full")
 
-    logger.info(f"Running extraction: {'incremental' if incremental else 'full'}")
+    logger.info(f"Running extraction: {'incremental' if incremental else 'full'} (using dlt)")
     return subprocess.call(cmd)
 
 
@@ -97,6 +97,13 @@ print(f"Feature importance saved to model")
     return subprocess.call(cmd)
 
 
+def download_database():
+    """Download the latest database from GitHub releases."""
+    logger.info("Downloading latest database from GitHub releases...")
+    cmd = ["uv", "run", "python", "scripts/download_latest_db.py"]
+    return subprocess.call(cmd)
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="ASX Stock Analysis Launcher")
@@ -110,6 +117,7 @@ def main():
             "extract-inc",
             "dbt",
             "ml-train",
+            "download-db",
             "all",
             "help",
         ],
@@ -135,6 +143,7 @@ def main():
         "extract-inc": lambda: run_extraction(incremental=True),
         "dbt": run_dbt,
         "ml-train": run_ml_training,
+        "download-db": download_database,
     }
 
     if args.command == "help":
@@ -145,6 +154,7 @@ def main():
         print("  python main.py extract     # Run full data extraction")
         print("  python main.py extract-inc # Run incremental extraction")
         print("  python main.py dbt         # Build dbt models")
+        print("  python main.py download-db # Download latest DB from GitHub")
         print("  python main.py ml-train    # Train ML model")
         print("  python main.py all         # Run full pipeline (extract + dbt)")
         return 0

@@ -1,11 +1,14 @@
 /*
  Staging model for ASX stock prices.
  Cleans and standardizes raw stock data, adding sector classification.
+ Incremental mode: updates only new/changed records since last run.
 */
 
 {{ config(
-    materialized='view',
-    alias='stg_asx_stock_prices'
+    materialized='incremental',
+    alias='stg_asx_stock_prices',
+    unique_key=['price_date', 'symbol'],
+    on_schema_change='fail'
 ) }}
 
 SELECT
@@ -40,6 +43,11 @@ WHERE
     date IS NOT NULL
     AND symbol IS NOT NULL
     AND close_price IS NOT NULL
+
+{% if is_incremental() %}
+    -- Only process records that are newer than what we have
+    AND CAST(date AS DATE) > (SELECT MAX(price_date) FROM {{ this }})
+{% endif %}
 
 QUALIFY
     -- Remove duplicates, keeping the most recent record per day/symbol

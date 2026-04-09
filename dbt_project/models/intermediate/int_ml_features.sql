@@ -6,15 +6,26 @@
  - Golden cross / death cross signals
  - Support/resistance levels
  - Sector correlation features
+ 
+ Incremental mode: processes only new records with lookback for lag features
 */
 
 {{ config(
-    materialized='view',
-    alias='int_ml_features'
+    materialized='incremental',
+    alias='int_ml_features',
+    unique_key=['symbol', 'price_date'],
+    on_schema_change='fail'
 ) }}
 
 WITH base_indicators AS (
     SELECT * FROM {{ ref('int_technical_indicators') }}
+    
+    {% if is_incremental() %}
+    -- Need 7 days lookback for lag_7_day_return
+    WHERE price_date >= (
+        SELECT DATE_SUB((SELECT MAX(price_date) FROM {{ this }}), INTERVAL 7 DAY)
+    )
+    {% endif %}
 ),
 
 lag_features AS (
@@ -294,6 +305,10 @@ SELECT
     * EXCLUDE (symbol, price_date)
     
 FROM final_join
+
+{% if is_incremental() %}
+WHERE price_date > (SELECT MAX(price_date) FROM {{ this }})
+{% endif %}
 
 ORDER BY 
     symbol,
