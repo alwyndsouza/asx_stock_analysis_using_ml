@@ -173,9 +173,8 @@ def run_full() -> None:
     # Create dlt pipeline
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,
-        destination=dlt.destinations.duckdb(DUCKDB_PATH),
+        destination="duckdb",
         dataset_name=DATASET_NAME,
-        full_refresh=True,  # Force full refresh
     )
     
     # Load data
@@ -194,9 +193,8 @@ def run_incremental() -> None:
     # Create dlt pipeline (reuses existing state)
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,
-        destination=dlt.destinations.duckdb(DUCKDB_PATH),
+        destination="duckdb",
         dataset_name=DATASET_NAME,
-        full_refresh=False,  # Preserve state for incremental
     )
     
     # Check if this is the first run
@@ -236,7 +234,7 @@ def view_pipeline_info() -> None:
     
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,
-        destination=dlt.destinations.duckdb(DUCKDB_PATH),
+        destination="duckdb",
         dataset_name=DATASET_NAME,
     )
     
@@ -252,16 +250,18 @@ def view_pipeline_info() -> None:
         
         # Query record count
         with pipeline.sql_client() as client:
-            with client.execute_query("SELECT COUNT(*) as count FROM asx_stock_prices") as cursor:
+            with client.execute_query(
+                f"SELECT COUNT(*) as count FROM {DATASET_NAME}.asx_stock_prices"
+            ) as cursor:
                 result = cursor.fetchone()
                 logger.info(f"Total records in asx_stock_prices: {result[0] if result else 0}")
             
-            with client.execute_query("""
+            with client.execute_query(f"""
                 SELECT 
                     MIN(date) as min_date,
                     MAX(date) as max_date,
                     COUNT(DISTINCT symbol) as symbol_count
-                FROM asx_stock_prices
+                FROM {DATASET_NAME}.asx_stock_prices
             """) as cursor:
                 result = cursor.fetchone()
                 if result:
