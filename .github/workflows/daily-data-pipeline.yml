@@ -17,6 +17,7 @@ on:
 
 env:
   DUCKDB_FILE: asx_stocks.duckdb
+  DESTINATION__DUCKDB__CREDENTIALS: asx_stocks.duckdb
   RELEASE_TAG: data-latest
   PYTHON_VERSION: '3.11'
 
