@@ -124,6 +124,8 @@ jobs:
       
       - name: Run dbt models
         working-directory: dbt_project
+        env:
+          DUCKDB_PATH: ../asx_stocks.duckdb
         run: |
           # Install dbt dependencies
           uv run dbt deps
@@ -140,6 +142,8 @@ jobs:
       
       - name: Run dbt tests
         working-directory: dbt_project
+        env:
+          DUCKDB_PATH: ../asx_stocks.duckdb
         run: |
           uv run dbt test
       
