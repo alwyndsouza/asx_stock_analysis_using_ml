@@ -175,7 +175,6 @@ def run_full() -> None:
         pipeline_name=PIPELINE_NAME,
         destination=dlt.destinations.duckdb(DUCKDB_PATH),
         dataset_name=DATASET_NAME,
-        full_refresh=True,  # Drop and recreate schema
     )
     
     # Load data
@@ -196,7 +195,6 @@ def run_incremental() -> None:
         pipeline_name=PIPELINE_NAME,
         destination=dlt.destinations.duckdb(DUCKDB_PATH),
         dataset_name=DATASET_NAME,
-        full_refresh=False,  # Preserve state for incremental
     )
     
     # Check if this is the first run
