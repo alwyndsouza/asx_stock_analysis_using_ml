@@ -105,6 +105,23 @@ jobs:
         run: |
           uv run python -m ingestion.asx_extraction.extract info
       
+      - name: Debug - Check DuckDB schemas and tables
+        run: |
+          echo "=== Checking DuckDB contents ==="
+          uv run python -c "
+          import duckdb
+          con = duckdb.connect('asx_stocks.duckdb')
+          print('\n=== All Schemas ===')
+          schemas = con.execute('SELECT schema_name FROM information_schema.schemata ORDER BY schema_name').fetchall()
+          for schema in schemas:
+              print(f'  {schema[0]}')
+          print('\n=== All Tables ===')
+          tables = con.execute('SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN (\'information_schema\', \'pg_catalog\') ORDER BY table_schema, table_name').fetchall()
+          for table in tables:
+              print(f'  {table[0]}.{table[1]}')
+          con.close()
+          "
+      
       - name: Run dbt models
         working-directory: dbt_project
         run: |
