@@ -268,7 +268,7 @@ WHERE
     
     {% if is_incremental() %}
     -- Incremental: only return new rows
-    AND f.price_date > (SELECT MAX(price_date) FROM {{ this }})
+    AND price_date > (SELECT MAX(price_date) FROM {{ this }})
     {% endif %}
     
 ORDER BY 
