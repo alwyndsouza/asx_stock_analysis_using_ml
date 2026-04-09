@@ -14,6 +14,7 @@ Usage:
 
 import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import duckdb
@@ -21,6 +22,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
+
+# Import database utilities
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from app.db_utils import ensure_database_exists
 
 # Try to import Prophet, provide fallback if not available
 PROPHET_AVAILABLE = False
@@ -32,6 +38,9 @@ try:
     PROPHET_AVAILABLE = True
 except ImportError as e:
     PROPHET_ERROR = str(e)
+
+# Ensure database is available (downloads if needed)
+ensure_database_exists()
 
 # Configuration
 DUCKDB_PATH = "asx_stocks.duckdb"
