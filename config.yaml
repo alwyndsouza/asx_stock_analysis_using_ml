@@ -16,7 +16,7 @@ database:
 extraction:
   # Stocks to track
   stocks:
-    gold: ["EVN.AX", "NST.AX", "RRL.AX", "SBM.AX"]  # Note: NCM not in original list, using gold miners
+    gold: ["EVN.AX", "NST.AX", "RRL.AX", "SBM.AX"]
     oil: ["WDS.AX", "STO.AX", "BPT.AX", "KAR.AX"]
     silver: ["SVL.AX", "S32.AX"]
   
