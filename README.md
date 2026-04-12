@@ -158,8 +158,5 @@ asx_stock_analysis_using_ml/
 - **Orchestration**: GitHub Actions
 - **Storage**: GitHub Releases
 
-## License
-MIT License - see [LICENSE](LICENSE) for details.
-
 ---
 **Built for scalability and performance by Alwyn Dsouza**
